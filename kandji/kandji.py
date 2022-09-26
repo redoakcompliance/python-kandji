@@ -19,7 +19,6 @@ class Kandji:
     def __init__(self, api_url, api_token):
         self.api_url = f"{api_url}/api/v1"
         self.headers = {
-            "Content-Type": "application/json",
             "User-Agent": f"python-kandji/{self.version}",
             "Authorization": f"Bearer {api_token}",
         }
@@ -36,6 +35,9 @@ class Kandji:
 
         if response.status_code != 200:
             return {"response": {"status": response.status_code}}
+
+        if response.headers['Content-Type'] == "application/x-x509-ca-cert":
+            return response.text
 
         return response.json()
 
@@ -160,7 +162,7 @@ class Kandji:
             "offset": offset,
         }
 
-        return self._get("/blueprints/templates", params=params)
+        return self._get("/blueprints/templates/", params=params)
 
     def list_devices(
         self,
