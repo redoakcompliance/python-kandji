@@ -9,15 +9,14 @@ class Kandji:
 
     Attributes:
         api_url (str): Your organization’s API URL.
-            Example: `https://SubDomain.clients.eu.kandji.io`
+            EU Region: `https://SubDomain.clients.eu.kandji.io`
+            US Region: `https://SubDomain.clients.us-1.kandji.io`
         api_token (str): API token.
     """
 
     version = importlib.metadata.version("kandji")
 
     def __init__(self, api_url, api_token):
-        print("init")
-
         self.api_url = f"{api_url}/api/v1"
         self.headers = {
             "Content-Type": "application/json",
@@ -145,6 +144,23 @@ class Kandji:
             dict
         """
         return self._get(f"/blueprints/{id}")
+
+    def get_blueprint_templates(self, limit: int = None, offset: int = None):
+        """This request returns a list of a blueprint templates in the Kandji instance.
+
+        Args:
+            limit (int, optional): Number of results to return per page.
+            offset (int, optional): The initial index from which to return the results.
+
+        Returns:
+            dict
+        """
+        params = {
+            "limit": limit,
+            "offset": offset,
+        }
+
+        return self._get("/blueprints/templates", params=params)
 
     def list_devices(
         self,
@@ -365,7 +381,7 @@ class Kandji:
         """This request allows you to retrieve the FileVault Recovery key for a macOS device.
 
         Args:
-            id (str): _description_
+            id (str): Device ID
 
         Returns:
             dict
