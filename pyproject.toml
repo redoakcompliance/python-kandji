@@ -3,7 +3,6 @@ name = "kandji"
 version = "0.1.0"
 description = "A python wrapper for the Kandji API"
 repository = "https://github.com/frefrik/python-kandji"
-readme = "README.rst"
 keywords = ["kandji", "api", "wrapper", "python"]
 authors = ["Fredrik Haarstad <codemonkey@zomg.no>"]
 license = "MIT"
