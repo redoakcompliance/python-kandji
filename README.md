@@ -4,6 +4,12 @@ kandji is a Python client for [Kandji](https://www.kandji.io/)'s API.
 
 Complete API endpoint documentation is available at https://api.kandji.io
 
+## Installation
+Install the latest release from [PyPI](https://pypi.org/project/kandji/):
+```
+pip install kandji
+```
+
 ## Quickstart
 
 1. [Generate an API token within your Kandji instance](https://support.kandji.io/api)
