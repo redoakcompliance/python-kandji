@@ -25,12 +25,15 @@ class Kandji:
 
     def _request(self, method, path, **kwargs):
         uri = "{}{}".format(self.api_url, path)
+        headers = kwargs.get("headers", self.headers)
         params = self._format_params(kwargs.get("params", {}))
+        payload = kwargs.get("json", {})
 
         response = getattr(requests, method)(
             uri,
-            headers=self.headers,
+            headers=headers,
             params=params,
+            json=payload,
         )
 
         if response.status_code != 200:
@@ -51,8 +54,136 @@ class Kandji:
     def _post(self, path, **kwargs):
         return self._request("post", path, **kwargs)
 
+    def _patch(self, path, **kwargs):
+        return self._request("patch", path, **kwargs)
+
+    def _delete(self, path, **kwargs):
+        return self._request("delete", path, **kwargs)
+
+    def create_ade_integration(self, blueprint_id: str, phone: str, email: str, file: str):
+        """Create ADE integration.
+
+        This request will create a new ADE integration.
+
+        The default `blueprint_id`, `phone` number, `email` address,and MDM server
+        token `file` downloaded from ABM are required and must be sent in the request.
+
+        Args:
+            blueprint_id (str): Blueprint ID.
+            phone (str): Phone number.
+            email (str): Email address.
+            file (str): This is the MDM server token file(.p7m) download from ABM.
+                Once downloaded from ABM, the file can be uploaded via API.
+
+        Returns:
+            dict
+        """
+        headers = self.headers
+        headers["Content-Type"] = "multipart/form-data"
+
+        payload = {
+            "blueprint_id": blueprint_id,
+            "phone": phone,
+            "email": email,
+        }
+
+        files = [("file", ("file", open(file, "rb"), "application/octet-stream"))]
+
+        return self._post(
+            "/integrations/apple/ade",
+            headers=headers,
+            json=payload,
+            files=files,
+        )
+
+    def renew_ade_integration(self, ade_token_id: str, blueprint_id: str, phone: str, email: str, file: str):
+        """Renew ADE integration.
+
+        This request will renew an existing ADE integration.
+
+        The default `blueprint_id`, `phone` number, `email` address, and MDM server token
+        `file`from the associated MDM server in ABM are required and must be sent in the request.
+
+        Args:
+            ade_token_id (str): ADE Token ID.
+            blueprint_id (str): Blueprint ID.
+            phone (str): Phone number.
+            email (str): Email address.
+            file (str): This is the MDM server token file(.p7m) download from ABM.
+                Once downloaded from ABM, the file can be uploaded via API.
+
+        Returns:
+            dict
+        """
+        headers = self.headers
+        headers["Content-Type"] = "multipart/form-data"
+
+        payload = {
+            "blueprint_id": blueprint_id,
+            "phone": phone,
+            "email": email,
+        }
+
+        files = [("file", ("file", open(file, "rb"), "application/octet-stream"))]
+
+        return self._post(
+            f"/integrations/apple/ade/{ade_token_id}/renew",
+            headers=headers,
+            json=payload,
+            files=files,
+        )
+
+    def update_ade_integration(self, ade_token_id: str, blueprint_id: str, phone: str, email: str):
+        """Update ADE integration.
+
+        This request will update the default blueprint, phone number,
+        and email address in an existing ADE integration.
+
+        The default `blueprint_id`, `phone` number, and `email` address
+        must be sent in the request.
+
+        Args:
+            ade_token_id (str): ADE Token ID.
+            blueprint_id (str): Blueprint ID.
+            phone (str): Phone number.
+            email (str): Email address.
+
+        Returns:
+            dict
+        """
+        payload = {
+            "blueprint_id": blueprint_id,
+            "phone": phone,
+            "email": email,
+        }
+
+        return self._patch(f"/integrations/apple/ade/{ade_token_id}", json=payload)
+
+    def delete_ade_integration(self, ade_token_id: str):
+        """Delete ADE integration.
+
+        WARNING!
+        This is a HIGHLY destructive action.
+
+        Deleting an ADE token will unassign the associated device records from Kandji.
+        For currently enrolled devices that were assigned to Kandji via the delete ADE integration
+        will not be impacted until they are wiped and reprovisioned. This action is essentially
+        the same as removing an ADE token from MDM and then adding it back.
+
+        If applicable, be sure to reassign the device records in ABM.
+
+        Args:
+            ade_token_id (str): ADE Token ID.
+
+        Returns:
+           None: This request doesn't return a response body
+        """
+        return self._delete(f"/integrations/apple/ade/{ade_token_id}")
+
     def list_ade_integrations(self):
-        """This request returns a list of configured ADE integrations.
+        """List ADE integrations.
+
+        This request returns a list of configured ADE integrations.
 
         Returns:
             dict
@@ -60,7 +191,9 @@ class Kandji:
         return self._get("/integrations/apple/ade")
 
     def list_ade_devices(self, ade_token_id: str, page: int = 1):
-        """This request returns a list of devices associated with a
+        """List devices associated to ADE token.
+
+        This request returns a list of devices associated with a
         specified `ade_token_id` as well as their enrollment status.
 
         When the `mdm_device` key value is `null`, this can be taken
@@ -82,7 +215,9 @@ class Kandji:
         return self._get(f"/integrations/apple/ade/{ade_token_id}/devices", params=params)
 
     def get_ade_integration(self, ade_token_id: str):
-        """This request returns a specific ADE integration based on the `ade_token_id` passed.
+        """Get ADE integration.
+
+        This request returns a specific ADE integration based on the `ade_token_id` passed.
 
         Args:
             ade_token_id (str): Automated Device Enrollment token ID
@@ -93,7 +228,9 @@ class Kandji:
         return self._get(f"/integrations/apple/ade/{ade_token_id}")
 
     def get_ade_public_key(self):
-        """This request returns the public key used to create an
+        """Download ADE public key.
+
+        This request returns the public key used to create an
         MDM server connection in Apple Business Manager.
 
         The encoded information needs to be saved to a file

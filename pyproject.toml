@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "kandji"
-version = "0.1.0"
+version = "0.1.1"
 description = "A python wrapper for the Kandji API"
 repository = "https://github.com/frefrik/python-kandji"
 keywords = ["kandji", "api", "wrapper", "python"]
