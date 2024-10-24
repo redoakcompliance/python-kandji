@@ -1,6 +1,6 @@
 # Liberated from https://github.com/frefrik/python-kandji/
 
-# import importlib.metadata
+import importlib.metadata
 import json
 
 import requests
@@ -16,8 +16,7 @@ class Kandji:
         api_token (str): API token.
     """
 
-    # version = importlib.metadata.version("kandji")
-    version = "0.1.0"
+    version = importlib.metadata.version("kandji")
 
     def __init__(self, api_url, api_token):
         self.api_url = f"{api_url}/api/v1"
