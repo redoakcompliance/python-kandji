@@ -1,4 +1,6 @@
-import importlib.metadata
+# Liberated from https://github.com/frefrik/python-kandji/
+
+# import importlib.metadata
 import json
 
 import requests
@@ -14,13 +16,15 @@ class Kandji:
         api_token (str): API token.
     """
 
-    version = importlib.metadata.version("kandji")
+    # version = importlib.metadata.version("kandji")
+    version = "0.1.0"
 
     def __init__(self, api_url, api_token):
         self.api_url = f"{api_url}/api/v1"
         self.headers = {
             "User-Agent": f"python-kandji/{self.version}",
             "Authorization": f"Bearer {api_token}",
+            "Content-Type": "application/json",
         }
 
     def _request(self, method, path, **kwargs):
@@ -36,10 +40,10 @@ class Kandji:
             json=payload,
         )
 
-        if response.status_code != 200:
+        if response.status_code not in [200, 201]:
             return {"response": {"status": response.status_code}}
 
-        if response.headers['Content-Type'] == "application/x-x509-ca-cert":
+        if response.headers["Content-Type"] == "application/x-x509-ca-cert":
             return response.text
 
         return response.json()
@@ -537,3 +541,193 @@ class Kandji:
             dict
         """
         return self._get(f"/devices/{id}/secrets/unlockpin")
+
+    #############################
+    ##  Library - Custom Apps  ##
+    #############################
+
+    def list_custom_apps(self, page: int = 1):
+        """This endpoint makes a request to retrieve a list of custom apps from the Kandji library.
+
+        Args:
+            page (int, optional): Request a specific page. Defaults to 1.
+
+        Returns:
+            dict
+        """
+
+        params = {
+            "page": page,
+        }
+
+        return self._get("/library/custom-apps", params=params)
+
+    def get_custom_app(self, library_item_id: str):
+        """This endpoint retrieves details about a specific custom app from the Kandji library.
+
+        Args:
+            library_item_id (str): The unique identifier of the library item.
+
+        Returns:
+            dict
+        """
+
+        return self._get(f"/library/custom-apps/{library_item_id}")
+
+    def upload_custom_app(self, package_name: str):
+        """This request retrieves the S3 upload details need for uploading the app to Amazon S3.
+
+        Args:
+            package_name (str): Name of custom app package in S3
+
+        Returns:
+            dict (includes the post_url used for `upload_to_s3`)
+        """
+
+        payload = {"name": f"{package_name}"}
+
+        return self._post("/library/custom-apps/upload", json=payload)
+
+    def upload_to_s3(self, post_url, post_data, file_location):
+        """
+        Upload a file to S3 using the provided POST URL and post data.
+        """
+        with open(file_location, "rb") as f:
+            files = {"file": (file_location, f)}
+
+            # Sending the POST request with multipart form data
+            response = requests.post(post_url, data=post_data, files=files)
+
+        return response
+
+    def create_custom_app(
+        self,
+        name: str,
+        file_key: str,
+        install_type: str,
+        install_enforcement: str,
+        audit_script: str = "",
+        unzip_location: str = "",
+        preinstall_script: str = "",
+        postinstall_script: str = "",
+        show_in_self_service: bool = False,
+        self_service_category_id: str = "",
+        self_service_recommended: bool = False,
+        active: bool = True,
+        restart: bool = False,
+    ):
+        """This request allows you to create a custom app in the Kandji library.
+
+        Args:
+            name (str): (Required) The name for this Custom App.
+            file_key (str): (Required) The S3 key from the Upload Custom App endpoint used to upload the custom app file.
+            install_type (str): (Required) Options are 'package', 'zip', 'image'.
+            install_enforcement (str): (Required) Options are 'install_once', 'continuously_enforce', 'no_enforcement'.
+            unzip_location (str, optional): (Required for install_type='zip') Path to extract the zip file to.
+            audit_script (str, optional): (Required for install_enforcement='continuously_enforce') Script to audit the app.
+            preinstall_script (str, optional): Script to run before install.
+            postinstall_script (str, optional): Script to run after install.
+            show_in_self_service (bool, optional): (Default=False) Displays this app in Self Service.
+            self_service_category_id (str, optional): (Required for show_in_self_service=True) Self Service Category ID to display the app in.
+            self_service_recommended (bool, optional): (Default=False) Adds a recommended flag to the app in Self Service.
+            active (bool, optional): (Default=True) Whether this Custom App is active and installable.
+            restart (bool, optional): (Default=False) Restart after a successful install.
+
+        Returns:
+            dict
+        """
+
+        body = dict(
+            name=name,
+            file_key=file_key,
+            install_type=install_type,
+            install_enforcement=install_enforcement,
+            unzip_location=unzip_location if install_type == "zip" else None,
+            audit_script=(audit_script if install_enforcement == "continuously_enforce" else None),
+            preinstall_script=preinstall_script,
+            postinstall_script=postinstall_script,
+            show_in_self_service=show_in_self_service,
+            self_service_category_id=(self_service_category_id if show_in_self_service else None),
+            self_service_recommended=(self_service_recommended if show_in_self_service else None),
+            active=active,
+            restart=restart,
+        )
+
+        # Filter out None values from the body dictionary
+
+        payload = {k: v for k, v in body.items() if v is not None}
+
+        return self._post("/library/custom-apps", json=payload)
+
+    def update_custom_app(
+        self,
+        library_item_id: str,
+        name: str,
+        file_key: str,
+        install_type: str,
+        install_enforcement: str,
+        audit_script: str = "",
+        unzip_location: str = "",
+        preinstall_script: str = "",
+        postinstall_script: str = "",
+        show_in_self_service: bool = False,
+        self_service_category_id: str = "",
+        self_service_recommended: bool = False,
+        active: bool = True,
+        restart: bool = False,
+    ):
+        """This request allows you to update a custom app in the Kandji library.
+
+        Args:
+            library_item_id (str): The unique identifier of the library item.
+            name (str): (Required) The name for this Custom App.
+            file_key (str): (Required) The S3 key from the Upload Custom App endpoint used to upload the custom app file.
+            install_type (str): (Required) Options are 'package', 'zip', 'image'.
+            install_enforcement (str): (Required) Options are 'install_once', 'continuously_enforce', 'no_enforcement'.
+            unzip_location (str, optional): (Required for install_type='zip') Path to extract the zip file to.
+            audit_script (str, optional): (Required for install_enforcement='continuously_enforce') Script to audit the app.
+            preinstall_script (str, optional): Script to run before install.
+            postinstall_script (str, optional): Script to run after install.
+            show_in_self_service (bool, optional): (Default=False) Displays this app in Self Service.
+            self_service_category_id (str, optional): (Required for show_in_self_service=True) Self Service Category ID to display the app in.
+            self_service_recommended (bool, optional): (Default=False) Adds a recommended flag to the app in Self Service.
+            active (bool, optional): (Default=True) Whether this Custom App is active and installable.
+            restart (bool, optional): (Default=False) Restart after a successful install.
+
+        Returns:
+            dict
+        """
+        body = dict(
+            name=name,
+            file_key=file_key,
+            install_type=install_type,
+            install_enforcement=install_enforcement,
+            unzip_location=unzip_location if install_type == "zip" else None,
+            audit_script=(audit_script if install_enforcement == "continuously_enforce" else None),
+            preinstall_script=preinstall_script,
+            postinstall_script=postinstall_script,
+            show_in_self_service=show_in_self_service,
+            self_service_category_id=(self_service_category_id if show_in_self_service else None),
+            self_service_recommended=self_service_recommended,
+            active=active,
+            restart=restart,
+        )
+
+        # Filter out None values from the body dictionary
+
+        payload = {k: v for k, v in body.items() if v is not None}
+
+        return self._patch(f"/library/custom-apps/{library_item_id}", json=payload)
+
+    def delete_custom_app(self, library_item_id: str):
+        """This endpoint sends a request to delete a specific custom app from the Kandji library.
+
+        Args:
+            library_item_id (str): The unique identifier of the library item.
+
+
+        Returns:
+            dict
+        """
+
+        return self._delete(f"library/custom-apps/{library_item_id}")
